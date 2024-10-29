@@ -12,10 +12,11 @@ CHROMA_PATH = "car_review_embeddings"
 EMBEDDING_FUNC_NAME = "multi-qa-MiniLM-L6-cos-v1"
 COLLECTION_NAME = "car_reviews"
 
-with open("config.json", "r") as json_file:
-    config_data = json.load(json_file)
-
 # Use an env var instead
+
+# with open("config.json", "r") as json_file:
+#     config_data = json.load(json_file)
+
 # openai.api_key = config_data.get("OPENAI_API_KEY")
 
 client = chromadb.PersistentClient(CHROMA_PATH)

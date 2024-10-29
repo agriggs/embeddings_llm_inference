@@ -9,5 +9,6 @@ python -m pip install -r requirements.txt
 
 Run
 ```
+python create_car_review_collection.py
 python llm_car_review_context.py 
 ```

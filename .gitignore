@@ -1,5 +1,4 @@
 .venv
 .vscode
-data
 __pycache__
 car_review_embeddings

@@ -9,9 +9,23 @@ OPENAI_API_KEY
 GOOGLE_API_KEY
 ```
 
+Restart VS Code or other IDE so the environment variables are loaded
+
 ## Python Environment
+
+Create the virtual environment
 ```
-python -m pip install -r requirements.txt
+python -m venv .venv
+```
+
+Activate the virtual environment
+```
+.\.venv\Scripts\activate
+```
+
+Install the Python packages to the virtual environment
+```
+pip install -r .\requirements.txt
 ```
 
 ## Create the RAG vectors

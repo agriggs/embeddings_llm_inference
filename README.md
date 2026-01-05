@@ -21,7 +21,7 @@ Create the virtual environment
 python -m venv .venv
 ```
 
-Activate the virtual environment
+Activate the virtual environment (Windows)
 ```
 .\.venv\Scripts\activate
 ```
@@ -41,7 +41,10 @@ SSL_CERT_FILE
 
 Car reviews source data is a bunch of CSV in [data/archive](./data/archive/) folder 
 
-## Create the RAG vectors
+## Create the embeddings (RAG vectors)
+
+For this example, embeddings are stored in ChromaDB that is an embedded database
+
 ```
 python create_car_review_collection.py
 ```

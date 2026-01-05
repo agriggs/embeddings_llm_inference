@@ -1,4 +1,4 @@
-# Embeddings and Vector Database with LLM Inference
+# Embeddings with LLM Inference
 
 Code from this overivew [Embeddings and Vector Databases With ChromaDB](https://realpython.com/chromadb-vector-database/). 
 

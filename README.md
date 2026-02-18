@@ -16,9 +16,19 @@ Restart VS Code or other IDE so the environment variables are loaded
 
 ## Python Environment
 
-Create the virtual environment
+`uv` is used for Python `venv` and `pip` experience but a common cache for the packages
+
+Install and configure `uv` following instructions here, it is only a few steps: 
+https://docs.astral.sh/uv/getting-started/
+
+Create the virtual environment using `uv`
 ```
-python -m venv .venv
+uv venv
+```
+
+Install the Python packages to the virtual environment
+```
+uv pip install -r .\requirements.txt
 ```
 
 Activate the virtual environment (Windows)
@@ -26,12 +36,7 @@ Activate the virtual environment (Windows)
 .\.venv\Scripts\activate
 ```
 
-Install the Python packages to the virtual environment
-```
-pip install -r .\requirements.txt
-```
-
-If running behind a TLS intercept (on corporate network), may need to set these environment variables for Python libs: requests, httpx
+If running behind a TLS intercept (on corporate network), may need to set these environment variables for Python libs: requests, https
 ```
 REQUESTS_CA_BUNDLE
 SSL_CERT_FILE
@@ -68,7 +73,7 @@ python llm_car_review_context.py claude
 
 ## Example Outputs
 
-### Elasticsearch Semantic Output
+### ChromaDB Semantic Output
 
 <b>Good reviews</b>
 

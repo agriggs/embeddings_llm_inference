@@ -22,18 +22,11 @@ Install and configure `uv` following instructions here, it is only a few steps:
 https://docs.astral.sh/uv/getting-started/
 
 Create the virtual environment using `uv`
-```
-uv venv
-```
-
-Install the Python packages to the virtual environment
-```
-uv pip install -r .\requirements.txt
-```
-
-Activate the virtual environment (Windows)
-```
-.\.venv\Scripts\activate
+**Initialize the project with uv:**
+```powershell
+uv init --python 3.12
+uv sync
+. .venv/bin/activate
 ```
 
 If running behind a TLS intercept (on corporate network), may need to set these environment variables for Python libs: requests, https
@@ -44,7 +37,7 @@ SSL_CERT_FILE
 
 ## Source data
 
-Car reviews source data is a bunch of CSV in [data/archive](./data/archive/) folder 
+Car reviews source data is a bunch of CSV in [data/archive](./data/archive/) folder
 
 ## Create the embeddings (RAG vectors)
 

@@ -22,6 +22,7 @@ Install and configure `uv` following instructions here, it is only a few steps:
 https://docs.astral.sh/uv/getting-started/
 
 Create the virtual environment using `uv`
+
 **Initialize the project with uv:**
 ```powershell
 uv init --python 3.12

@@ -30,7 +30,6 @@ Create the virtual environment using `uv`
 
 **Initialize the project with uv:**
 ```powershell
-uv init --python 3.12
 uv sync
 . .venv/bin/activate
 ```

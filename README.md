@@ -59,7 +59,7 @@ Edit the model IDs under `[models]` in [llm_models.toml](./llm_models.toml):
 Environment variables take precedence over the file. API keys are configured
 separately, as described above.
 
-After changing the embedding model, run the build script below before inference.
+After changing the embedding model, run the create collection script below before inference.
 Each model uses a separate collection, preserving existing embeddings.
 
 ## Create the embeddings (RAG vectors)
@@ -70,6 +70,10 @@ The scripts automatically select an accelerator supported by the installed
 PyTorch runtime, falling back to CPU, and print the selected device.
 GPU use requires an appropriate PyTorch build and drivers. Intel laptop NPUs
 require a separate backend such as OpenVINO; this project currently uses PyTorch.
+
+On Intel Core Ultra 7 265U 2.10 GHz embeddings took 8 minutes to build and store. On GeForce RTX 5080 with NVIDAI Cuda took 21 seconds. 
+
+Only need to build once for each embedding model. 
 
 ```
 python create_car_review_collection.py

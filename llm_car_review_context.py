@@ -1,8 +1,10 @@
-import os
 import argparse
 
+from llm_model_config import MODEL_ENV_VARS, resolve_model
+from chroma_utils import embedding_collection_name
+
 import chromadb
-from chromadb.utils import embedding_functions
+from embedding_utils import create_embedding_function
 
 # Optional model SDKs — import only if available to keep the script import-safe
 try:
@@ -32,18 +34,25 @@ except Exception:
 # Configuration
 DATA_PATH = "data/archive/*"
 CHROMA_PATH = "car_review_embeddings"
-EMBEDDING_FUNC_NAME = "multi-qa-MiniLM-L6-cos-v1"
-COLLECTION_NAME = "car_reviews"
 
 
-def get_collection():
+def get_collection(embedding_model=None):
+    embedding_model = resolve_model("embedding", embedding_model)
     client = chromadb.PersistentClient(CHROMA_PATH)
-    embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name=EMBEDDING_FUNC_NAME
-    )
+    collection_name = embedding_collection_name(embedding_model)
+    try:
+        collection = client.get_collection(name=collection_name, embedding_function=None)
+    except chromadb.errors.NotFoundError as exc:
+        raise ValueError(
+            f"No collection for embedding model {embedding_model!r}. Run "
+            "python create_car_review_collection.py first, using the same model configuration."
+        ) from exc
+    if (collection.metadata or {}).get("embedding_model") != embedding_model:
+        raise ValueError("Collection embedding model does not match the selected model")
+    embedding_func = create_embedding_function(embedding_model)
 
     collection = client.get_collection(
-        name=COLLECTION_NAME, embedding_function=embedding_func
+        name=collection_name, embedding_function=embedding_func
     )
     return collection
 
@@ -65,7 +74,8 @@ def query_poor_reviews(collection, question, n_results=5):
         where={"Rating": {"$lte": 3}},
     )
 
-def analyze_with_openai(context, question, model="gpt-3.5-turbo"):
+def analyze_with_openai(context, question, model=None):
+    model = resolve_model("openai", model)
     if not _has_openai:
         raise RuntimeError("OpenAI SDK not available. Install the official OpenAI Python SDK.")
     client = OpenAI()
@@ -77,13 +87,13 @@ def analyze_with_openai(context, question, model="gpt-3.5-turbo"):
             {"role": "system", "content": context},
             {"role": "user", "content": question},
         ],
-        temperature=0,
         n=1,
     )
     return resp.choices[0].message.content
 
 
-def analyze_with_gemini(context, question, model="gemini-2.5-flash"):
+def analyze_with_gemini(context, question, model=None):
+    model = resolve_model("gemini", model)
     if not _has_gemini:
         raise RuntimeError("Gemini (google-genai) SDK not available. Install google-genai.")
     client = genai.Client()
@@ -100,7 +110,8 @@ def analyze_with_gemini(context, question, model="gemini-2.5-flash"):
     return getattr(resp, "text", None) or str(resp)
 
 
-def analyze_with_claude(context, question, model="claude-sonnet-4-5"):
+def analyze_with_claude(context, question, model=None):
+    model = resolve_model("claude", model)
     if not _has_claude:
         raise RuntimeError("Anthropic SDK not available. Install the anthropic package.")
     client = Anthropic()
@@ -108,21 +119,19 @@ def analyze_with_claude(context, question, model="claude-sonnet-4-5"):
     resp = client.messages.create(
         model=model,
         system=context,
-        max_tokens=1024,
+        max_tokens=4096,
         messages=[{"role": "user", "content": question}],
     )
-    # Anthropic SDK returns content in resp.content[...] structure in older clients
-    # Try a couple of common access patterns
-    if hasattr(resp, "content"):
-        try:
-            return resp.content[0].text
-        except Exception:
-            return str(resp.content)
-    return str(resp)
+    # Reasoning models may return thinking blocks before the answer text.
+    return "\n".join(block.text for block in resp.content if block.type == "text")
 
 
-def run(provider: str):
-    collection = get_collection()
+def run(provider: str, model: str | None = None, embedding_model: str | None = None):
+    model = resolve_model(provider, model)
+    embedding_model = resolve_model("embedding", embedding_model)
+    print(f"Using {provider} model: {model}")
+    print(f"Using embedding model: {embedding_model}")
+    collection = get_collection(embedding_model)
 
     # Positive reviews question
     pos_question = "What's the key to great customer satisfaction based on detailed positive reviews?"
@@ -154,14 +163,14 @@ def run(provider: str):
     ai_context_poor_reviews = ai_context.format(poor_reviews_str)
     
     if provider == "openai":
-        summary = analyze_with_openai(ai_context_good_reviews, pos_question)
-        worst = analyze_with_openai(ai_context_poor_reviews, poor_question)
+        summary = analyze_with_openai(ai_context_good_reviews, pos_question, model=model)
+        worst = analyze_with_openai(ai_context_poor_reviews, poor_question, model=model)
     elif provider == "gemini":
-        summary = analyze_with_gemini(ai_context_good_reviews, pos_question)
-        worst = analyze_with_gemini(ai_context_poor_reviews, poor_question)
+        summary = analyze_with_gemini(ai_context_good_reviews, pos_question, model=model)
+        worst = analyze_with_gemini(ai_context_poor_reviews, poor_question, model=model)
     elif provider == "claude":
-        summary = analyze_with_claude(ai_context_good_reviews, pos_question)
-        worst = analyze_with_claude(ai_context_poor_reviews, poor_question)
+        summary = analyze_with_claude(ai_context_good_reviews, pos_question, model=model)
+        worst = analyze_with_claude(ai_context_poor_reviews, poor_question, model=model)
     else:
         raise ValueError("Unknown provider: choose one of openai|gemini|claude")
 
@@ -174,9 +183,12 @@ def run(provider: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Unified car review context analyzer")
-    parser.add_argument("provider", choices=["openai", "gemini", "claude"], help="Which provider to use")
+    parser.add_argument("provider", choices=list(MODEL_ENV_VARS), help="Which provider to use")
     args = parser.parse_args()
-    run(args.provider)
+    try:
+        run(args.provider)
+    except ValueError as exc:
+        parser.error(str(exc))
 
 
 if __name__ == "__main__":

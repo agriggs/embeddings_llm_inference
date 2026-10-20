@@ -1,39 +1,34 @@
-import chromadb
-from chromadb.utils import embedding_functions
+import argparse
 
 from car_data_etl import prepare_car_reviews_data
-from chroma_utils import build_chroma_collection
+from chroma_utils import build_chroma_collection, embedding_collection_name
+from llm_model_config import resolve_model
 
 DATA_PATH = "data/archive/*"
 CHROMA_PATH = "car_review_embeddings"
-EMBEDDING_FUNC_NAME = "multi-qa-MiniLM-L6-cos-v1"
-COLLECTION_NAME = "car_reviews"
 
-chroma_car_reviews_dict = prepare_car_reviews_data(DATA_PATH)
 
-build_chroma_collection(
-    CHROMA_PATH,
-    COLLECTION_NAME,
-    EMBEDDING_FUNC_NAME,
-    chroma_car_reviews_dict["ids"],
-    chroma_car_reviews_dict["documents"],
-    chroma_car_reviews_dict["metadatas"],
-)
+def main():
+    parser = argparse.ArgumentParser(description="Build car review embeddings")
+    parser.parse_args()
+    try:
+        embedding_model = resolve_model("embedding")
+    except ValueError as exc:
+        parser.error(str(exc))
+    collection_name = embedding_collection_name(embedding_model)
+    print(f"Using embedding model: {embedding_model}", flush=True)
+    print(f"Creating collection: {collection_name}", flush=True)
+    print("Preparing review data...", flush=True)
+    chroma_car_reviews_dict = prepare_car_reviews_data(DATA_PATH)
 
-client = chromadb.PersistentClient(CHROMA_PATH)
-embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(
-    model_name=EMBEDDING_FUNC_NAME
-)
-collection = client.get_collection(
-    name=COLLECTION_NAME, embedding_function=embedding_func
-)
+    build_chroma_collection(
+        CHROMA_PATH,
+        collection_name,
+        embedding_model,
+        chroma_car_reviews_dict["ids"],
+        chroma_car_reviews_dict["documents"],
+        chroma_car_reviews_dict["metadatas"],
+    )
 
-great_reviews = collection.query(
-    query_texts=[
-        "Find me some positive reviews that discuss the car's performance"
-    ],
-    n_results=5,
-    include=["documents", "distances", "metadatas"],
-)
-
-print(great_reviews["documents"][0][0])
+if __name__ == "__main__":
+    main()

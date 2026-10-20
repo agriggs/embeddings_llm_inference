@@ -41,6 +41,8 @@ REQUESTS_CA_BUNDLE
 SSL_CERT_FILE
 ```
 
+Corporate network may also block calls to some of the LLM AI endpoints.
+
 ## Source data
 
 Car reviews source data is a bunch of CSV in [data/archive](./data/archive/) folder.

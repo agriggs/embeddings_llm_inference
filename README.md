@@ -1,8 +1,18 @@
 # Embeddings with LLM Inference
 
-Code from this overivew [Embeddings and Vector Databases With ChromaDB](https://realpython.com/chromadb-vector-database/). 
+Code from this overview [Embeddings and Vector Databases With ChromaDB](https://realpython.com/chromadb-vector-database/).
 
 Updated to use multiple Large Language Models (LLMs) and removed the sample code that is not relevant.
+
+## Contents
+
+- [API Keys](#api-keys)
+- [Python Environment](#python-environment)
+- [Source Data](#source-data)
+- [Model Configuration](#model-configuration)
+- [Create the Embeddings (RAG Vectors)](#create-the-embeddings-rag-vectors)
+- [Run GenAI Inference](#run-genai-inference)
+- [Example Outputs](#example-outputs)
 
 ## API Keys
 Get API keys for the providers you want to use and set their environment variables.
@@ -12,7 +22,7 @@ GOOGLE_API_KEY
 ANTHROPIC_API_KEY
 ```
 
-Get Hugging Face Token and set the environment variable, used to download the embeddings model.
+Get a Hugging Face token and set the environment variable. It is used to download the embedding model.
 ```
 HF_TOKEN
 ```
@@ -21,32 +31,37 @@ Restart VS Code or other IDE so the environment variables are loaded.
 
 ## Python Environment
 
-`uv` is used for Python `venv` and `pip` experience but a common cache for the packages.
+`uv` replaces `venv` and `pip`, and keeps a shared package cache.
 
-Install and configure `uv` following instructions here, it is only a few steps: 
-https://docs.astral.sh/uv/getting-started/
+Install `uv` by following the [getting started guide](https://docs.astral.sh/uv/getting-started/). It is only a few steps.
 
-Create the virtual environment using `uv`
+Create the virtual environment and activate it:
 
-**Initialize the project with uv:**
+Windows (PowerShell)
 ```powershell
 uv sync
-. .venv/bin/activate
+.venv\Scripts\Activate.ps1
 ```
 
-If running behind a TLS intercept (on corporate network), may need to set these environment variables for Python libs: requests, https.
+Linux / WSL
+```bash
+uv sync
+source .venv/bin/activate
+```
+
+If you are behind a TLS intercept (corporate network), you may need to set these environment variables for Python HTTP libraries (`requests`, `httpx`).
 ```
 REQUESTS_CA_BUNDLE
 SSL_CERT_FILE
 ```
 
-Corporate network may also block calls to some of the LLM AI endpoints.
+A corporate network may also block calls to some LLM API endpoints.
 
-## Source data
+## Source Data
 
-Car reviews source data is a bunch of CSV in [data/archive](./data/archive/) folder.
+The car review source data is a set of CSV files in the [data/archive](./data/archive/) folder.
 
-## Model configuration
+## Model Configuration
 
 Edit the model IDs under `[models]` in [llm_models.toml](./llm_models.toml):
 
@@ -61,24 +76,35 @@ Environment variables take precedence over the file. API keys are configured
 separately, as described above.
 
 After changing the embedding model, run the create collection script below before inference.
-Each model uses a separate collection, preserving existing embeddings.
+Each model uses a separate collection, so existing embeddings are preserved.
 
-## Create the embeddings (RAG vectors)
+## Create the Embeddings (RAG Vectors)
 
 Embeddings are stored locally in ChromaDB under `car_review_embeddings`.
-
-The scripts automatically select an accelerator supported by the installed
-PyTorch runtime, falling back to CPU, and print the selected device.
-GPU use requires an appropriate PyTorch build and drivers. Intel laptop NPUs
-require a separate backend such as OpenVINO; this project currently uses PyTorch.
-
-On Intel Core Ultra 7 265U 2.10 GHz embeddings took 8 minutes to build and store. On GeForce RTX 5080 with NVIDAI Cuda took 21 seconds. 
-
-Only need to build once for each embedding model. 
+You only need to build them once per embedding model.
 
 ```
 python create_car_review_collection.py
 ```
+
+The scripts pick the best accelerator the installed PyTorch supports, fall back
+to CPU, and print the selected device. Intel laptop NPUs would need a separate
+backend such as OpenVINO; this project uses PyTorch.
+
+On Windows, [pyproject.toml](./pyproject.toml) installs the CUDA 12.8 PyTorch build.
+To confirm the GPU is enabled:
+```
+python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+```
+Expect `+cu128 True`. `+cpu` or `False` means the CPU build is in use.
+
+Build times:
+
+| Hardware | Time |
+| --- | --- |
+| Intel Core Ultra 7 265U (CPU) | 8 minutes |
+| Intel Core Ultra 7 265K (CPU) | 75 seconds |
+| NVIDIA GeForce RTX 5080 (CUDA, Windows and WSL Ubuntu 24.04) | 10-20 seconds |
 
 ## Run GenAI Inference
 
@@ -99,77 +125,73 @@ python llm_car_review_context.py claude
 
 ## Example Outputs
 
-The outputs below are historical examples from earlier model versions.
+```
+Using claude model: claude-sonnet-5-5
+Using embedding model: BAAI/bge-small-en-v1.5
+Embedding device: cuda:0
+```
 
 ### ChromaDB Semantic Output
 
-<b>Good reviews</b>
+#### Good Reviews (excerpt)
 
-Great value, awesome reliability, I normally dont do reviews, but thought this was worth writing. I own 3 pickups and am not brand dedicated because there are so many nice trucks. I own 3 different trucks. I am drawn to looks first then power and interior. I have notice reading reviews that most want to beat the trucks up, there are no perfect trucks. The Nissan drew me in because it was different and I dont recall any recalls. I owned a Xterra and it was bulletproof and am hoping for the same on my Titan. After looking at all brands and I liked them all, I really like the warranty on my Titan and I got more equipment for the money than the competitors. My first and second tank of fuel at 70 mpg I got 17.5, I was very pleased and when it get broke in I hope for 20. I find it to be very quiet and so were all the others on top of the line. I guess I could beat the truck up with small complaints but sure makes spending my money on it hard to swallow. If the truck last me for 10 years I will be very pleased. I know the ride will get much better as it has in all my cars and trucks in time. I hope you enjoy your new purchase as much as I am enjoying mine., Very  pleased! Great deal! So far so good!, Excellent quality, technology, comfort and value. Way impressed with this vehicle., Things I love: styling, performance, large info center, smooth acceleration, no gas stations, low maintenance costs, incredible sound system, frunk and sub-trunk, rear cargo space, HOV lane, federal tax credit, summons feature, replacement parts seem nicely priced, my first Service Center experience was excellent, my first body shop experience was very good, many people think you are "cool" and environmentally friendly (and you are).          Things I wish were better: fit and finish of body parts (not up to premium car standard), auto pilot still not a wow...needs more development, blind spot monitor is below expectations for such an advance vehicle, difficulty getting in and out of front seat...if you are tall, the front seat goes behind the "B" pillar too far thus the entering and exiting is more difficult. Final Verdict. I love the car. I doubt I would ever buy an ICE car again., Good overall but a lot of others out there., Excellent choice, so far, so good.  I got the S-Line, Premium Plus package and am very happy with it.  Quality it top notch inside and out.  No issues at all, though I've only had it for a month and about 1500 miles., After all the facts and findings over all review is outstanding., Excellent features and performance!  
+Make sure 'everything' works according to sales pitch and everything is there that you expect to be there, Shop around to locate the best deal and services., You get a lot for your money and great performance. We feel like this Has been a great buy for us., Satisfied with my purchase at Honda of Rockwall. All sales reps were very professional., Edmunds helped us feel confident with our purchase and gave us some help when dealing with the dealership., People doing reviews in this should be in the high end class like the Audi, Lexus, etc. Once you see the features and tech on par compare the price and save some money., High marks on comfort, options, materials and workmanship. Lacking a bit in performance and roominess. Overall, excellent!, Read reviews like Edmunds and Consumer Reports;  test drive several times; negoiatethe price et, It is best in class and max value for money. Just need to focus more on brand building from reliability POV., After all the facts and findings over all r
 
-<b>Worst reviews:</b> 
+#### Worst Review (excerpt)
 
- I have been to the dealership four times and I still have unresolved electrical issues, from the Bluetooth, backup camera, truck wont open, black screen every other trip turning off, clock wont work, seatbelts NOT WORKING !!!!!!!! which really pisses me off as I have a child in the car. So many issues in a short period of time it has become the worst vehicle I have owned unfortunately and to the point where I will drop the car off back at the dealership and purchase something else. I don't have the time to deal with a vehicle of 53k value as if it were pieced together from spare parts from a junkyard. I always read reviews before buying vehicles and I have stuck with Nissan & Infiniti for the past ten years for their workhorse engines as two of my Nissans went to 289k & 377k miles but after this SUV I am jumping ship as soon as possible.
+Purchased the car less than a year ago. Upside it is fun to drive. Downside is the dealer response to reported issues. Rear windows would not close completely and added to an already loud cruise experience. RH rear window fell inside of quarter panel. Nice. Took to Ft. Myers dealer, reported that and was fixed. Reported poor AC performance, not fixed, now it doesn’t work at all. Reported rear camera not working. Fixed, now it works sparratically, after all, I only need it in reverse :( Reported ambient temp read out inaccurate. Not fixed. Reported seat coolers very inefficient, service guy says they are OK. Speedometer drops off, dealer couldn’t duplicate, so it must be OK too. Seat memory system is forgetful, dealer couldn’t duplicate, so it must be OK. Tell that to my shorter than me wife. New one this week, dash dimmer switch activates all by itself, can hardly wait to listen to dealer on this one.
 
- ### Claude Inference Output
+### Claude Inference Output
 
-<b>Claude generated summary with claude-sonnet-4-5 of good reviews:</b> 
-Based on the detailed positive reviews provided, the keys to great customer satisfaction are:
+#### Summary of Good Reviews: Key Drivers of Customer Satisfaction
 
-#### 1. **Value for Money**
-Customers emphasize getting "more equipment for the money than competitors" and appreciate "great deals." The perception of receiving excellent features at a competitive price point is crucial.
+Based on these reviews, satisfaction comes down to a few themes.
 
-#### 2. **Reliability and Quality**
-Multiple reviews mention "awesome reliability," "bulletproof" performance, and "excellent quality." Customers want vehicles they can trust for the long term (10+ years).
+##### 1. Value for money
+Customers repeatedly say they feel they got more than they paid for:
+- "You get a lot for your money and great performance."
+- "Best in class and max value for money."
+- One reviewer notes that features and tech rival luxury brands like Audi and Lexus at a lower price.
 
-#### 3. **Strong Warranty and Low Maintenance**
-A generous warranty package and "low maintenance costs" provide peace of mind and reduce long-term ownership concerns.
+##### 2. Professional, trustworthy sales experience
+- One buyer was satisfied because "all sales reps were very professional."
+- Another said Edmunds gave them confidence and help when dealing with the dealership, which shows customers value support and transparency in the buying process.
 
-#### 4. **Performance and Technology**
-Customers value:
-- "Smooth acceleration" and performance
-- Advanced technology features (large info centers, autopilot, summons features)
-- Modern amenities (sound systems, cargo space)
+##### 3. Quality, comfort, and features
+- Reviewers gave high marks to "comfort, options, materials and workmanship."
+- Delivering on features and technology builds loyalty.
 
-#### 5. **Unique Features and Differentiation**
-Buyers appreciate vehicles that are "different" and stand out, whether through styling, environmental benefits (HOV lanes, no gas stations), or innovative features.
+##### 4. Delivering on the sales pitch
+- Customers advise checking that "everything works according to the sales pitch" and that everything expected is there. Meeting expectations at delivery matters as much as the sale itself.
 
-#### 6. **Positive Ownership Experience**
-- Good service center experiences
-- Fair replacement part pricing
-- Meeting or exceeding expectations (fuel economy, comfort)
+##### 5. Informed buyers
+- Satisfied customers researched on Edmunds and Consumer Reports, test drove several times, shopped around, and negotiated. Dealerships that welcome this, with fair pricing and open test drives, tend to earn more trust.
 
-**Bottom Line**: Great customer satisfaction comes from delivering reliable, feature-rich vehicles at competitive prices, backed by strong warranties and excellent service—essentially exceeding value expectations while minimizing ownership hassles.
+##### Areas to improve
+Even the positive reviews point to a few gaps:
+- **Performance and roominess** were called "lacking a bit."
+- **Brand reliability perception** needs more work, since one reviewer said the brand should "focus more on brand building from a reliability POV."
 
-<b>Claude generated summary with claude-sonnet-4-5 of the single worst review:</b>
+##### Bottom line
+Great satisfaction comes from **fair value, professional and transparent service, quality that matches the pitch, and a buying process that lets customers feel informed and confident.**
 
-Based on these reviews, **the second review (about the GMC vehicle with transmission issues)** has the worst implications for the dealership, despite the reviewer noting the dealer has been "very good to work with."
+#### Analysis of the Worst Review
 
-Here's why this is most damaging:
+**The Chevrolet Spark review is the most damaging.** The Subaru/Madison review is a close second.
 
-#### Critical Safety and Operations Issues:
+##### Worst: the Spark owner
+1. **The dealership dismissed safety concerns.** The owner reported unintended braking and a dangerous lack of power when pulling away from a stop. The dealership said it was "the way it's supposed to be" and "if I don't like it get a new car." If anyone is hurt, a documented pattern of brushing off safety complaints is a serious liability.
+2. **The dealership refused to serve the customer.** After four visits for one issue, the owner says they were told to never come back. That reads as abandonment, not a service failure.
+3. **It looks like a lemon-law case.** The owner reports repeated failed repairs (four visits for the power issue, three for the suspension, and a new rear squeak after the front was fixed), which could trigger legal and regulatory exposure.
+4. **The customer was charged for a defect.** The owner says they were made to buy touch-up paint for paint that chips down to bare metal, which suggests a known defect was treated as customer wear.
+5. **It asks other owners to pile on.** The review urges other Spark owners to post, which could amplify the damage.
 
-1. **Repeated, Extended Downtime**: The vehicle has been in the shop for 14 days across 3 occasions and is STILL there. This suggests:
-   - Inability to diagnose problems correctly the first time
-   - Poor parts inventory management
-   - Inefficient service operations
+##### Runner-up: the Madison Subaru review
+This one is the worst for **trust and integrity**. The salesperson allegedly made a math error and then accused the customer of cheating. The review also describes repeated run-arounds, unresolved recall and electrical issues, and says outright to "avoid the west side dealership in Madison WI." It names a location and says the customer will escalate and never buy the brand again, so it is the most likely to cost us future sales.
 
-2. **Parts Availability Crisis**: The dealership didn't have basic parts on hand for multiple repairs:
-   - Transmission leak parts
-   - Spindle nut (which was broken by the mechanic)
-   - Rear shock and spring bushing components
+##### Others
+- **The first review** (Honda, Ft. Myers) shows a pattern of "could not duplicate" responses and failed repairs, plus the claim that the dealer has "a nasty view of customers." It is bad but less severe, and the issues are mostly comfort and convenience, not safety.
+- **The Pilot review** is mostly about product defects, with relatively little blame on the dealership.
 
-   This reveals systematic inventory problems that extend repair times unnecessarily.
-
-3. **Mechanic Error**: Breaking the spindle nut during reassembly shows potential technician competency issues or rushing through repairs.
-
-4. **Factory Defect Not Caught**: The rear wheel alignment issue that wore tires to the cord should have been caught during pre-delivery inspection (PDI). This is a fundamental dealership failure. 
-
-5. **Potential Lemon**: The customer is explicitly considering this a lemon, which could lead to legal action involving the dealership.
-
-#### Why This is Worse Than the Others:
-
-- **Review 1 (Nissan/Infiniti)**: Focuses on vehicle quality issues, not dealership service failures
-- **Reviews 3, 4, 5**: Focus on vehicle design/comfort complaints, not dealership operations
-
-The GMC review reveals operational incompetence that reflects directly on YOUR dealership's service department, parts management, and quality control processes.
+##### Caveat
+The reviews name different brands and locations, so I can't tell which ones are about our store. If only some apply to us, we should confirm that first and prioritize outreach on those. For the Spark owner, I'd recommend immediate escalation to management and the manufacturer's regional rep, a documented safety inspection, and a personal call to the customer.

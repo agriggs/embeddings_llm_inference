@@ -1,6 +1,6 @@
 # Embeddings with LLM Inference
 
-Code from this overview [Embeddings and Vector Databases With ChromaDB](https://realpython.com/chromadb-vector-database/).
+Code originally from this repo that does a great job describing embeddings [Embeddings and Vector Databases With ChromaDB](https://realpython.com/chromadb-vector-database/).
 
 Updated to use multiple Large Language Models (LLMs) and removed the sample code that is not relevant.
 
